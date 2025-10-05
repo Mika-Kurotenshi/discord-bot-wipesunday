@@ -4,17 +4,23 @@ from datetime import datetime, timedelta
 import pytz
 import os
 from dotenv import load_dotenv
+from flask import Flask
+import threading
 
+# -----------------------------
 # Charger les variables d'environnement
+# -----------------------------
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 TEST_NOW = os.getenv("TEST_NOW", "false").lower() == "true"
 
+# -----------------------------
 # Configuration
+# -----------------------------
 CHANNEL_ID = 1201189852889231451  # Salon où le message sera envoyé
 ROLE_ID_WIPER = 933063131343769610  # ID du rôle Wiper
-TARGET_DAY = "friday"
-TARGET_HOUR = 17
+TARGET_DAY = "saturday"
+TARGET_HOUR = 13
 TARGET_MINUTE = 0
 TIMEZONE = pytz.timezone("Europe/Paris")
 
@@ -24,7 +30,9 @@ client = discord.Client(intents=intents)
 last_sent_date = None
 calendar_days = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"]
 
+# -----------------------------
 # Fonction pour calculer la prochaine exécution
+# -----------------------------
 def next_run_time():
     now = datetime.now(TIMEZONE)
     days_ahead = (calendar_days.index(TARGET_DAY) - calendar_days.index(now.strftime("%A").lower())) % 7
@@ -33,7 +41,9 @@ def next_run_time():
     next_time = now + timedelta(days=days_ahead)
     return next_time.replace(hour=TARGET_HOUR, minute=TARGET_MINUTE, second=0, microsecond=0)
 
+# -----------------------------
 # Fonction pour envoyer le message public avec ping rôle
+# -----------------------------
 async def send_wipesunday_ping_role():
     global last_sent_date
     now = datetime.now(TIMEZONE)
@@ -45,13 +55,15 @@ async def send_wipesunday_ping_role():
         print("❌ Salon introuvable")
         return
 
-    # Message pingant le rôle Wiper avec texte et symboles
+    # Message pingant le rôle Wiper
     await channel.send(f"⚠️ <@&{ROLE_ID_WIPER}> Pour le prochain Wipe Sunday, merci de taper la commande `!!wipesunday` ! 🎉✨")
 
     print(f"✅ Message public ping Wiper envoyé le {now}")
     last_sent_date = now.date()
 
+# -----------------------------
 # Événement ready
+# -----------------------------
 @client.event
 async def on_ready():
     print(f"✅ WipeSunday connecté en tant que {client.user}")
@@ -62,7 +74,9 @@ async def on_ready():
     if TEST_NOW:
         await send_wipesunday_ping_role()
 
+# -----------------------------
 # Boucle pour vérifier l'heure chaque minute
+# -----------------------------
 @tasks.loop(minutes=1)
 async def check_time():
     now = datetime.now(TIMEZONE)
@@ -71,5 +85,21 @@ async def check_time():
         and now.minute == TARGET_MINUTE):
         await send_wipesunday_ping_role()
 
-# Lancer le bot
+# -----------------------------
+# Flask pour UptimeRobot
+# -----------------------------
+app = Flask("")
+
+@app.route("/")
+def home():
+    return "WipeSunday is alive!"
+
+def run_flask():
+    app.run(host="0.0.0.0", port=8080)
+
+threading.Thread(target=run_flask).start()
+
+# -----------------------------
+# Lancer le bot Discord
+# -----------------------------
 client.run(TOKEN)
