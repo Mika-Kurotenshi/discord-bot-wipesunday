@@ -13,8 +13,8 @@ TEST_NOW = os.getenv("TEST_NOW", "false").lower() == "true"
 # Configuration
 CHANNEL_ID = 1201189852889231451  # Salon où le message sera envoyé
 ROLE_ID_WIPER = 933063131343769610  # ID du rôle Wiper
-TARGET_DAY = "saturday"
-TARGET_HOUR = 13
+TARGET_DAY = "friday"
+TARGET_HOUR = 17
 TARGET_MINUTE = 0
 TIMEZONE = pytz.timezone("Europe/Paris")
 
