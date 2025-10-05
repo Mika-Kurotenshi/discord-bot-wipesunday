@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
+TEST_NOW = os.getenv("TEST_NOW", "false").lower() == "true"  # Variable pour test
 
 CHANNEL_ID = 1201189852889231451
 TARGET_DAY = "saturday"
@@ -30,8 +31,19 @@ def next_run_time():
 @client.event
 async def on_ready():
     print(f"✅ WipeSunday connecté en tant que {client.user}")
-    print(f"Prochaine exécution prévue : {next_run_time()}") 
+    print(f"Prochaine exécution prévue : {next_run_time()}")
     check_time.start()
+    if TEST_NOW:
+        await test_immediate_send()
+
+async def test_immediate_send():
+    global last_sent_date
+    now = datetime.now(TIMEZONE)
+    channel = client.get_channel(CHANNEL_ID)
+    if channel and last_sent_date != now.date():
+        await channel.send("!!wipesunday")
+        print(f"✅ Commande envoyée immédiatement pour test le {now}")
+        last_sent_date = now.date()
 
 @tasks.loop(minutes=1)
 async def check_time():
@@ -48,3 +60,4 @@ async def check_time():
             last_sent_date = now.date()
 
 client.run(TOKEN)
+
