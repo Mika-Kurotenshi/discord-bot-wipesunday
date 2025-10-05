@@ -12,6 +12,7 @@ TEST_NOW = os.getenv("TEST_NOW", "false").lower() == "true"
 
 # Configuration
 CHANNEL_ID = 1201189852889231451  # Salon où le message sera envoyé
+ROLE_ID_WIPER = 933063131343769610  # ID du rôle Wiper
 TARGET_DAY = "saturday"
 TARGET_HOUR = 13
 TARGET_MINUTE = 0
@@ -32,8 +33,8 @@ def next_run_time():
     next_time = now + timedelta(days=days_ahead)
     return next_time.replace(hour=TARGET_HOUR, minute=TARGET_MINUTE, second=0, microsecond=0)
 
-# Fonction pour envoyer le message public
-async def send_wipesunday_ping_public():
+# Fonction pour envoyer le message public avec ping rôle
+async def send_wipesunday_ping_role():
     global last_sent_date
     now = datetime.now(TIMEZONE)
     if last_sent_date == now.date():
@@ -44,9 +45,10 @@ async def send_wipesunday_ping_public():
         print("❌ Salon introuvable")
         return
 
-    # Message public visible par tous
-    await channel.send("⚠️ Wipesunday ! Tapez la commande `!!wipesunday` dès maintenant si vous voulez participer.")
-    print(f"✅ Message public envoyé le {now}")
+    # Message pingant le rôle Wiper avec texte et symboles
+    await channel.send(f"⚠️ <@&{ROLE_ID_WIPER}> Pour le prochain Wipe Sunday, merci de taper la commande `!!wipesunday` ! 🎉✨")
+
+    print(f"✅ Message public ping Wiper envoyé le {now}")
     last_sent_date = now.date()
 
 # Événement ready
@@ -58,7 +60,7 @@ async def on_ready():
 
     # Test immédiat
     if TEST_NOW:
-        await send_wipesunday_ping_public()
+        await send_wipesunday_ping_role()
 
 # Boucle pour vérifier l'heure chaque minute
 @tasks.loop(minutes=1)
@@ -67,7 +69,7 @@ async def check_time():
     if (now.strftime("%A").lower() == TARGET_DAY
         and now.hour == TARGET_HOUR
         and now.minute == TARGET_MINUTE):
-        await send_wipesunday_ping_public()
+        await send_wipesunday_ping_role()
 
 # Lancer le bot
 client.run(TOKEN)
