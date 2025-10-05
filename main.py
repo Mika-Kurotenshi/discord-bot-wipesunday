@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
-TEST_NOW = os.getenv("TEST_NOW", "false").lower() == "true"  # Variable pour test
+TEST_NOW = os.getenv("TEST_NOW", "false").lower() == "true"
 
 CHANNEL_ID = 1201189852889231451
 TARGET_DAY = "saturday"
@@ -28,36 +28,40 @@ def next_run_time():
     next_time = now + timedelta(days=days_ahead)
     return next_time.replace(hour=TARGET_HOUR, minute=TARGET_MINUTE, second=0, microsecond=0)
 
+async def send_wipesunday_message():
+    global last_sent_date
+    now = datetime.now(TIMEZONE)
+    channel = client.get_channel(CHANNEL_ID)
+    if not channel or last_sent_date == now.date():
+        return
+    # Webhook pour que Draftbot voit le message comme un utilisateur
+    webhooks = await channel.webhooks()
+    if webhooks:
+        webhook = webhooks[0]
+    else:
+        webhook = await channel.create_webhook(name="WipeSunday Webhook")
+    await webhook.send(
+        content="!!wipesunday",
+        username="WipeSunday",
+        avatar_url=client.user.avatar.url if client.user.avatar else None
+    )
+    print(f"✅ Commande envoyée le {now}")
+    last_sent_date = now.date()
+
 @client.event
 async def on_ready():
     print(f"✅ WipeSunday connecté en tant que {client.user}")
     print(f"Prochaine exécution prévue : {next_run_time()}")
     check_time.start()
     if TEST_NOW:
-        await test_immediate_send()
-
-async def test_immediate_send():
-    global last_sent_date
-    now = datetime.now(TIMEZONE)
-    channel = client.get_channel(CHANNEL_ID)
-    if channel and last_sent_date != now.date():
-        await channel.send("!!wipesunday")
-        print(f"✅ Commande envoyée immédiatement pour test le {now}")
-        last_sent_date = now.date()
+        await send_wipesunday_message()
 
 @tasks.loop(minutes=1)
 async def check_time():
-    global last_sent_date
     now = datetime.now(TIMEZONE)
     if (now.strftime("%A").lower() == TARGET_DAY
         and now.hour == TARGET_HOUR
-        and now.minute == TARGET_MINUTE
-        and last_sent_date != now.date()):
-        channel = client.get_channel(CHANNEL_ID)
-        if channel:
-            await channel.send("!!wipesunday")
-            print(f"✅ Commande envoyée le {now}")
-            last_sent_date = now.date()
+        and now.minute == TARGET_MINUTE):
+        await send_wipesunday_message()
 
 client.run(TOKEN)
-
